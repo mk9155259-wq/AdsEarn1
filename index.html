@@ -2,2031 +2,511 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Telegram AdEarn Bot</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>AdsEarn Bot</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-    <script src='//libtl.com/sdk.js' data-zone='10463078' data-sdk='show_10463078'></script>
-    <!-- Firebase SDK -->
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
-    <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
     <style>
         :root {
-            /* Light Theme Variables */
-            --bg-primary: #f8f9fa;
-            --bg-secondary: #ffffff;
-            --bg-tertiary: #e9ecef;
-            --text-primary: #212529;
-            --text-secondary: #6c757d;
-            --accent: #007bff;
-            --accent-hover: #0056b3;
-            --success: #28a745;
-            --warning: #ffc107;
-            --danger: #dc3545;
-            --border: #dee2e6;
-            --shadow: rgba(0, 0, 0, 0.1);
-            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-        }
-
-        [data-theme="dark"] {
-            /* Dark Theme Variables */
-            --bg-primary: #121212;
-            --bg-secondary: #1e1e1e;
-            --bg-tertiary: #2d2d2d;
-            --text-primary: #f8f9fa;
-            --text-secondary: #adb5bd;
-            --accent: #0d6efd;
-            --accent-hover: #0b5ed7;
-            --success: #198754;
-            --warning: #ffca2c;
-            --danger: #dc3545;
-            --border: #495057;
-            --shadow: rgba(0, 0, 0, 0.3);
-            --card-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --primary-gradient: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+            --accent-color: #10b981;
+            --danger-color: #ef4444;
+            --warning-color: #f59e0b;
         }
 
         * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
-            box-sizing: border-box;
-            transition: background-color 0.3s, color 0.3s;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
+            background-color: var(--bg-color);
+            color: var(--text-color);
             line-height: 1.6;
-            min-height: 100vh;
             overflow-x: hidden;
         }
 
-        .container {
-            max-width: 100%;
-            padding: 0 15px;
-            margin: 0 auto;
+        /* Layout */
+        #app { max-width: 500px; margin: 0 auto; padding: 15px; padding-bottom: 80px; }
+        .hidden { display: none !important; }
+
+        /* UI Components */
+        .card {
+            background: var(--card-bg);
+            border-radius: 16px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.05);
         }
 
-        /* Header */
-        .header {
-            background-color: var(--bg-secondary);
-            padding: 15px 0;
-            box-shadow: var(--card-shadow);
-            position: sticky;
-            top: 0;
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .balance-card { text-align: center; background: var(--primary-gradient); color: white; }
+        .balance-value { font-size: 2.5rem; font-weight: 800; margin: 10px 0; }
+
+        .grid-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .stat-item { background: rgba(255, 255, 255, 0.05); padding: 10px; border-radius: 12px; text-align: center; }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            border: none;
+            font-weight: 700;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: transform 0.2s, opacity 0.2s;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-primary { background: var(--primary-gradient); }
+        .btn-secondary { background: #475569; }
+        .btn-withdraw { background: var(--accent-color); }
+        .btn:active { transform: scale(0.98); }
+        .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Bottom Nav */
+        .nav-bar {
+            position: fixed;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 100%;
+            max-width: 500px;
+            background: var(--card-bg);
+            display: flex;
+            justify-content: space-around;
+            padding: 12px 0;
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
             z-index: 100;
         }
 
-        .header-content {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+        .nav-item { color: #94a3b8; text-decoration: none; font-size: 0.8rem; text-align: center; flex: 1; border: none; background: none; }
+        .nav-item.active { color: #3b82f6; }
 
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-
-        .logo-icon {
-            font-size: 24px;
-            color: var(--accent);
-        }
-
-        .logo-text {
-            font-weight: 700;
-            font-size: 20px;
-        }
-
-        .theme-toggle {
-            background: none;
-            border: none;
-            font-size: 20px;
-            color: var(--text-secondary);
-            cursor: pointer;
-            padding: 5px;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .theme-toggle:hover {
-            background-color: var(--bg-tertiary);
-        }
-
-        /* Navigation */
-        .nav-tabs {
-            display: flex;
-            overflow-x: auto;
-            background-color: var(--bg-secondary);
-            border-bottom: 1px solid var(--border);
-            padding: 0 15px;
-            position: sticky;
-            top: 70px;
-            z-index: 90;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .nav-tab {
-            padding: 15px 20px;
-            white-space: nowrap;
-            border-bottom: 3px solid transparent;
-            color: var(--text-secondary);
-            font-weight: 500;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-        }
-
-        .nav-tab.active {
-            color: var(--accent);
-            border-bottom-color: var(--accent);
-        }
-
-        .nav-tab i {
-            font-size: 16px;
-        }
-
-        /* Main Content */
-        .main-content {
-            padding: 20px 0 80px;
-        }
-
-        .page {
-            display: none;
-            animation: fadeIn 0.3s ease-in-out;
-        }
-
-        .page.active {
-            display: block;
-        }
-
-        /* Cards */
-        .card {
-            background-color: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 20px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border);
-        }
-
-        .card-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 15px;
-        }
-
-        .card-title {
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        .card-value {
-            font-size: 24px;
-            font-weight: 700;
-            color: var(--accent);
-        }
-
-        .card-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background-color: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 15px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border);
-            text-align: center;
-        }
-
-        .stat-icon {
-            font-size: 24px;
-            margin-bottom: 10px;
-            color: var(--accent);
-        }
-
-        .stat-value {
-            font-size: 22px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }
-
-        .stat-label {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        /* Buttons */
-        .btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 20px;
-            border-radius: 8px;
-            font-weight: 600;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s;
+        /* Forms & Inputs */
+        input, select {
             width: 100%;
-            font-size: 16px;
-        }
-
-        .btn-primary {
-            background-color: var(--accent);
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background-color: var(--accent-hover);
-        }
-
-        .btn-success {
-            background-color: var(--success);
-            color: white;
-        }
-
-        .btn-success:hover {
-            opacity: 0.9;
-        }
-
-        .btn-warning {
-            background-color: var(--warning);
-            color: var(--text-primary);
-        }
-
-        .btn-warning:hover {
-            opacity: 0.9;
-        }
-
-        .btn-disabled {
-            background-color: var(--bg-tertiary);
-            color: var(--text-secondary);
-            cursor: not-allowed;
-        }
-
-        /* Forms */
-        .form-group {
-            margin-bottom: 20px;
-        }
-
-        .form-label {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-
-        .form-control {
-            width: 100%;
-            padding: 12px 15px;
+            padding: 12px;
+            margin: 8px 0;
             border-radius: 8px;
-            border: 1px solid var(--border);
-            background-color: var(--bg-primary);
-            color: var(--text-primary);
-            font-size: 16px;
-        }
-
-        .form-control:focus {
-            outline: none;
-            border-color: var(--accent);
-        }
-
-        /* Ad containers */
-        .ad-container {
-            margin-bottom: 20px;
-        }
-
-        .ad-card {
-            background-color: var(--bg-secondary);
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: var(--card-shadow);
-            border: 1px solid var(--border);
-            margin-bottom: 15px;
-        }
-
-        .ad-header {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-
-        .ad-icon {
-            font-size: 24px;
-            color: var(--accent);
-        }
-
-        .ad-title {
-            font-weight: 600;
-            font-size: 18px;
-        }
-
-        .ad-reward {
-            font-weight: 700;
-            color: var(--success);
-            margin-left: auto;
-        }
-
-        .ad-description {
-            color: var(--text-secondary);
-            margin-bottom: 15px;
-        }
-
-        .timer {
-            font-size: 32px;
-            font-weight: 700;
-            text-align: center;
-            margin: 20px 0;
-            color: var(--accent);
-            font-family: monospace;
-        }
-
-        .progress-bar {
-            height: 8px;
-            background-color: var(--bg-tertiary);
-            border-radius: 4px;
-            overflow: hidden;
-            margin-bottom: 15px;
-        }
-
-        .progress-fill {
-            height: 100%;
-            background-color: var(--accent);
-            width: 0%;
-            transition: width 1s linear;
-        }
-
-        /* Referral */
-        .referral-link-container {
-            display: flex;
-            margin-bottom: 20px;
-        }
-
-        .referral-link {
-            flex-grow: 1;
-            padding: 12px 15px;
-            background-color: var(--bg-primary);
-            border: 1px solid var(--border);
-            border-radius: 8px 0 0 8px;
-            font-family: monospace;
-            overflow-x: auto;
-            white-space: nowrap;
-        }
-
-        .copy-btn {
-            background-color: var(--accent);
+            border: 1px solid #334155;
+            background: #0f172a;
             color: white;
-            border: none;
-            padding: 0 15px;
-            border-radius: 0 8px 8px 0;
-            cursor: pointer;
         }
 
-        /* History */
-        .history-list {
-            list-style: none;
-        }
+        /* Admin Specific */
+        .admin-header { background: var(--warning-color); color: black; padding: 10px; border-radius: 8px; margin-bottom: 15px; font-weight: bold; text-align: center; }
+        .list-item { background: rgba(255,255,255,0.03); padding: 12px; border-radius: 8px; margin-bottom: 8px; border-left: 4px solid #3b82f6; }
+        .badge { padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: bold; }
+        .badge-pending { background: var(--warning-color); color: black; }
+        .badge-approved { background: var(--accent-color); }
+        .badge-rejected { background: var(--danger-color); }
 
-        .history-item {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 15px 0;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .history-item:last-child {
-            border-bottom: none;
-        }
-
-        .history-info {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .history-title {
-            font-weight: 600;
-        }
-
-        .history-date {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .history-amount {
-            font-weight: 700;
-        }
-
-        .history-amount.positive {
-            color: var(--success);
-        }
-
-        .history-amount.negative {
-            color: var(--danger);
-        }
-
-        .status-badge {
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .status-pending {
-            background-color: rgba(255, 193, 7, 0.2);
-            color: var(--warning);
-        }
-
-        .status-approved {
-            background-color: rgba(40, 167, 69, 0.2);
-            color: var(--success);
-        }
-
-        .status-rejected {
-            background-color: rgba(220, 53, 69, 0.2);
-            color: var(--danger);
-        }
-
-        /* Notifications */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background-color: var(--bg-secondary);
-            border-radius: 8px;
-            padding: 15px;
-            box-shadow: 0 5px 15px var(--shadow);
-            z-index: 1000;
-            max-width: 300px;
-            transform: translateX(400px);
-            transition: transform 0.3s ease-in-out;
-            border-left: 4px solid var(--accent);
-        }
-
-        .notification.show {
-            transform: translateX(0);
-        }
-
-        .notification-title {
-            font-weight: 600;
-            margin-bottom: 5px;
-        }
-
-        .notification-message {
-            font-size: 14px;
-            color: var(--text-secondary);
-        }
-
-        .notification-close {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: none;
-            border: none;
-            color: var(--text-secondary);
-            cursor: pointer;
-        }
-
-        /* Loading */
-        .loading {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            padding: 40px;
-        }
-
-        .loading-spinner {
-            width: 40px;
-            height: 40px;
-            border: 4px solid var(--border);
-            border-top: 4px solid var(--accent);
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-
-        /* Footer */
-        .footer {
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background-color: var(--bg-secondary);
-            padding: 15px;
-            border-top: 1px solid var(--border);
-            display: flex;
-            justify-content: space-around;
-            z-index: 80;
-        }
-
-        .footer-item {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            color: var(--text-secondary);
-            font-size: 12px;
-            gap: 5px;
-        }
-
-        .footer-item.active {
-            color: var(--accent);
-        }
-
-        .footer-icon {
-            font-size: 20px;
-        }
-
-        /* Animations */
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        /* Responsive adjustments */
-        @media (min-width: 768px) {
-            .container {
-                max-width: 750px;
-            }
-            
-            .nav-tabs {
-                justify-content: center;
-            }
-            
-            .card-grid {
-                grid-template-columns: repeat(3, 1fr);
-            }
-        }
-
-        @media (min-width: 992px) {
-            .container {
-                max-width: 970px;
-            }
-        }
-
-        /* Utility classes */
-        .text-center { text-align: center; }
-        .mb-1 { margin-bottom: 10px; }
-        .mb-2 { margin-bottom: 20px; }
-        .mb-3 { margin-bottom: 30px; }
-        .mt-1 { margin-top: 10px; }
-        .mt-2 { margin-top: 20px; }
-        .mt-3 { margin-top: 30px; }
-        .hidden { display: none; }
+        /* Timer Overlay */
+        #timer-display { font-size: 1.2rem; font-weight: bold; color: var(--warning-color); margin-top: 10px; }
     </style>
 </head>
 <body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container header-content">
-            <div class="logo">
-                <div class="logo-icon"><i class="fas fa-coins"></i></div>
-                <div class="logo-text">AdEarn Bot</div>
+
+<div id="app">
+    <div id="view-home" class="view">
+        <div class="header">
+            <h3>Welcome, <span id="user-name">User</span>!</h3>
+            <button class="badge" onclick="showAdminLogin()" style="background:#334155">Admin</button>
+        </div>
+
+        <div class="card balance-card">
+            <p>Total Earnings</p>
+            <div class="balance-value"><span id="user-coins">0</span> 🪙</div>
+            <p>1 Coin = Admin Set Rate</p>
+        </div>
+
+        <div class="grid-stats card">
+            <div class="stat-item">
+                <small>Daily Limit</small>
+                <div id="stat-limit">0</div>
             </div>
-            <button class="theme-toggle" id="themeToggle">
-                <i class="fas fa-moon"></i>
+            <div class="stat-item">
+                <small>Remaining</small>
+                <div id="stat-remaining">0</div>
+            </div>
+        </div>
+
+        <div class="card" style="text-align: center;">
+            <button id="btn-earn" class="btn btn-primary" onclick="handleEarnClick()">
+                🚀 Earn Coins
             </button>
+            <div id="timer-display" class="hidden">Wait: <span id="seconds">0</span>s</div>
+            <p style="font-size: 0.75rem; margin-top: 10px; color: #94a3b8;">Click the button to open the ad and wait for the timer.</p>
         </div>
-    </header>
-
-    <!-- Navigation Tabs -->
-    <nav class="nav-tabs" id="navTabs">
-        <div class="nav-tab active" data-page="dashboard">
-            <i class="fas fa-home"></i>
-            <span>Dashboard</span>
-        </div>
-        <div class="nav-tab" data-page="earn">
-            <i class="fas fa-play-circle"></i>
-            <span>Earn Ads</span>
-        </div>
-        <div class="nav-tab" data-page="bonus">
-            <i class="fas fa-gift"></i>
-            <span>Daily Bonus</span>
-        </div>
-        <div class="nav-tab" data-page="referral">
-            <i class="fas fa-users"></i>
-            <span>Refer & Earn</span>
-        </div>
-        <div class="nav-tab" data-page="withdraw">
-            <i class="fas fa-wallet"></i>
-            <span>Withdraw</span>
-        </div>
-        <div class="nav-tab" data-page="history">
-            <i class="fas fa-history"></i>
-            <span>History</span>
-        </div>
-        <div class="nav-tab" data-page="support">
-            <i class="fas fa-question-circle"></i>
-            <span>Support</span>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <main class="main-content">
-        <div class="container">
-            <!-- Dashboard Page -->
-            <div class="page active" id="dashboard">
-                <div class="card mb-2">
-                    <div class="card-header">
-                        <div class="card-title">Welcome, <span id="username">User</span></div>
-                        <div class="card-value">$<span id="currentBalance">0.00</span></div>
-                    </div>
-                    <div>User ID: <span id="userId">12345</span></div>
-                    <div>Joined: <span id="joinDate">2023-01-01</span></div>
-                </div>
-
-                <div class="card-grid">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-play"></i></div>
-                        <div class="stat-value" id="adsWatched">0</div>
-                        <div class="stat-label">Ads Watched</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-users"></i></div>
-                        <div class="stat-value" id="totalReferrals">0</div>
-                        <div class="stat-label">Referrals</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-coins"></i></div>
-                        <div class="stat-value">$<span id="referralEarnings">0.00</span></div>
-                        <div class="stat-label">Referral Earnings</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-header">
-                        <div class="card-title">Withdraw Status</div>
-                        <div class="status-badge status-pending" id="withdrawStatus">Pending</div>
-                    </div>
-                    <div>Minimum withdraw: $5.00</div>
-                    <div>Next withdraw available in: <span id="nextWithdraw">0 days</span></div>
-                    <button class="btn btn-primary mt-2" id="goToWithdrawBtn">Withdraw Now</button>
-                </div>
-
-                <div class="card">
-                    <div class="card-title mb-2">Quick Stats</div>
-                    <div class="mb-1">Today's Earnings: <strong>$<span id="todayEarnings">0.00</span></strong></div>
-                    <div class="mb-1">Total Earnings: <strong>$<span id="totalEarnings">0.00</span></strong></div>
-                    <div>Withdrawn: <strong>$<span id="totalWithdrawn">0.00</span></strong></div>
-                </div>
-            </div>
-
-            <!-- Earn Ads Page -->
-            <div class="page" id="earn">
-                <h2 class="mb-2">Watch Ads & Earn Money</h2>
-                <p class="mb-2 text-center">Watch ads completely to earn rewards. Each ad has a timer that must complete.</p>
-                
-                <div class="ad-container">
-                    <!-- Monitag Ad -->
-                    <div class="ad-card" id="monitagAd">
-                        <div class="ad-header">
-                            <div class="ad-icon"><i class="fas fa-ad"></i></div>
-                            <div class="ad-title">Monitag Ads</div>
-                            <div class="ad-reward">+$0.20</div>
-                        </div>
-                        <div class="ad-description">Watch Monitag advertisement to earn $0.20. Ads will be displayed in the box below.</div>
-                        <div id="monitag-ad-container" style="min-height: 250px; background-color: var(--bg-tertiary); border-radius: 8px; display: flex; align-items: center; justify-content: center; margin-bottom: 15px;">
-                            <div style="text-align: center; padding: 20px;">
-                                <i class="fas fa-ad" style="font-size: 40px; color: var(--text-secondary); margin-bottom: 10px;"></i>
-                                <div>Monitag Ads will load here</div>
-                            </div>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="monitagProgress"></div>
-                        </div>
-                        <div class="timer" id="monitagTimer">00:30</div>
-                        <button class="btn btn-primary" id="watchMonitagBtn">Watch Monitag Ad</button>
-                    </div>
-
-                    <!-- Video Ad -->
-                    <div class="ad-card" id="videoAd">
-                        <div class="ad-header">
-                            <div class="ad-icon"><i class="fas fa-video"></i></div>
-                            <div class="ad-title">Video Advertisement</div>
-                            <div class="ad-reward">+$0.10</div>
-                        </div>
-                        <div class="ad-description">Watch this 30-second video advertisement to earn $0.10</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="videoProgress"></div>
-                        </div>
-                        <div class="timer" id="videoTimer">00:30</div>
-                        <button class="btn btn-primary" id="watchVideoBtn">Watch Video Ad</button>
-                    </div>
-
-                    <!-- Website Visit Ad -->
-                    <div class="ad-card" id="websiteAd">
-                        <div class="ad-header">
-                            <div class="ad-icon"><i class="fas fa-globe"></i></div>
-                            <div class="ad-title">Website Visit</div>
-                            <div class="ad-reward">+$0.15</div>
-                        </div>
-                        <div class="ad-description">Visit this website for 20 seconds to earn $0.15</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="websiteProgress"></div>
-                        </div>
-                        <div class="timer" id="websiteTimer">00:20</div>
-                        <button class="btn btn-primary" id="visitWebsiteBtn">Visit Website</button>
-                    </div>
-
-                    <!-- Join Channel Ad -->
-                    <div class="ad-card" id="channelAd">
-                        <div class="ad-header">
-                            <div class="ad-icon"><i class="fab fa-telegram"></i></div>
-                            <div class="ad-title">Join Telegram Channel</div>
-                            <div class="ad-reward">+$0.25</div>
-                        </div>
-                        <div class="ad-description">Join our Telegram channel to earn $0.25</div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" id="channelProgress"></div>
-                        </div>
-                        <div class="timer" id="channelTimer">00:10</div>
-                        <button class="btn btn-primary" id="joinChannelBtn">Join Channel</button>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title mb-2">Ad Rules</div>
-                    <ul>
-                        <li>You must watch the entire ad to receive reward</li>
-                        <li>Do not close the app while ad is playing</li>
-                        <li>Maximum 10 ads per day</li>
-                        <li>Rewards are added automatically after completion</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Daily Bonus Page -->
-            <div class="page" id="bonus">
-                <h2 class="mb-2">Daily Bonus</h2>
-                
-                <div class="card mb-2">
-                    <div class="card-header">
-                        <div class="card-title">Daily Streak</div>
-                        <div class="card-value" id="streakCount">0 days</div>
-                    </div>
-                    <div class="mb-1">Today's Bonus: <strong>$<span id="dailyBonusAmount">0.50</span></strong></div>
-                    <div>Next Bonus in: <strong><span id="bonusTimer">00:00:00</span></strong></div>
-                </div>
-
-                <div class="card mb-2">
-                    <div class="card-title mb-2">Streak Rewards</div>
-                    <div class="history-item">
-                        <div class="history-info">
-                            <div class="history-title">3 Day Streak</div>
-                            <div class="history-date">Bonus: $2.00</div>
-                        </div>
-                        <div class="status-badge" id="streak3Status">Locked</div>
-                    </div>
-                    <div class="history-item">
-                        <div class="history-info">
-                            <div class="history-title">7 Day Streak</div>
-                            <div class="history-date">Bonus: $5.00</div>
-                        </div>
-                        <div class="status-badge" id="streak7Status">Locked</div>
-                    </div>
-                    <div class="history-item">
-                        <div class="history-info">
-                            <div class="history-title">30 Day Streak</div>
-                            <div class="history-date">Bonus: $25.00</div>
-                        </div>
-                        <div class="status-badge" id="streak30Status">Locked</div>
-                    </div>
-                </div>
-
-                <button class="btn btn-success" id="claimBonusBtn" disabled>Claim Daily Bonus</button>
-                
-                <div class="card mt-2">
-                    <div class="card-title mb-2">How it works</div>
-                    <ul>
-                        <li>Claim your daily bonus every 24 hours</li>
-                        <li>Maintain your streak by claiming daily</li>
-                        <li>Earn special rewards at 3, 7, and 30 days</li>
-                        <li>Missing a day resets your streak</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Referral Page -->
-            <div class="page" id="referral">
-                <h2 class="mb-2">Refer & Earn</h2>
-                
-                <div class="card mb-2">
-                    <div class="card-header">
-                        <div class="card-title">Your Referral Link</div>
-                        <div class="card-value">20% Commission</div>
-                    </div>
-                    <p class="mb-2">Invite friends and earn 20% of their earnings for life!</p>
-                    
-                    <div class="referral-link-container">
-                        <div class="referral-link" id="referralLink">https://t.me/AdEarnBot?start=ref12345</div>
-                        <button class="copy-btn" id="copyReferralBtn"><i class="fas fa-copy"></i></button>
-                    </div>
-                </div>
-
-                <div class="card-grid mb-2">
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-user-plus"></i></div>
-                        <div class="stat-value" id="referralCount">0</div>
-                        <div class="stat-label">Total Referrals</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-coins"></i></div>
-                        <div class="stat-value">$<span id="referralTotal">0.00</span></div>
-                        <div class="stat-label">Total Commission</div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon"><i class="fas fa-calendar-day"></i></div>
-                        <div class="stat-value">$<span id="referralToday">0.00</span></div>
-                        <div class="stat-label">Today's Commission</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title mb-2">How it works</div>
-                    <ul>
-                        <li>Share your referral link with friends</li>
-                        <li>When they sign up using your link, they become your referral</li>
-                        <li>You earn 20% of all their earnings (ads, bonuses, etc.)</li>
-                        <li>Commission is credited instantly to your balance</li>
-                        <li>No limit on how many friends you can refer</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Withdraw Page -->
-            <div class="page" id="withdraw">
-                <h2 class="mb-2">Withdraw Earnings</h2>
-                
-                <div class="card mb-2">
-                    <div class="card-header">
-                        <div class="card-title">Current Balance</div>
-                        <div class="card-value">$<span id="withdrawBalance">0.00</span></div>
-                    </div>
-                    <div>Minimum withdraw: <strong>$5.00</strong></div>
-                    <div>Available for withdraw: <strong>$<span id="availableBalance">0.00</span></strong></div>
-                </div>
-
-                <div class="card mb-2">
-                    <div class="card-title mb-2">Withdraw Method</div>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Select Method</label>
-                        <select class="form-control" id="withdrawMethod">
-                            <option value="bkash">bKash (Bangladesh)</option>
-                            <option value="nagad">Nagad (Bangladesh)</option>
-                            <option value="binance">Binance / USDT (Crypto)</option>
-                            <option value="paypal">PayPal (International)</option>
-                        </select>
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" id="accountLabel">bKash Account Number</label>
-                        <input type="text" class="form-control" id="accountNumber" placeholder="01XXXXXXXXX">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label">Amount ($)</label>
-                        <input type="number" class="form-control" id="withdrawAmount" min="5" max="1000" step="0.01" placeholder="5.00">
-                        <div class="text-center mt-1">Minimum: $5.00, Maximum: $1000.00</div>
-                    </div>
-
-                    <button class="btn btn-primary" id="submitWithdrawBtn">Request Withdrawal</button>
-                </div>
-
-                <div class="card">
-                    <div class="card-title mb-2">Withdrawal Rules</div>
-                    <ul>
-                        <li>Minimum withdrawal amount is $5.00</li>
-                        <li>Withdrawals are processed within 24-48 hours</li>
-                        <li>You can make one withdrawal every 7 days</li>
-                        <li>Transaction fees may apply depending on method</li>
-                        <li>Your account must be verified for withdrawals</li>
-                    </ul>
-                </div>
-            </div>
-
-            <!-- History Page -->
-            <div class="page" id="history">
-                <h2 class="mb-2">Transaction History</h2>
-                
-                <div class="card mb-2">
-                    <div class="card-title mb-2">Filter History</div>
-                    <div class="form-group">
-                        <select class="form-control" id="historyFilter">
-                            <option value="all">All History</option>
-                            <option value="ads">Ads Watched</option>
-                            <option value="bonus">Daily Bonuses</option>
-                            <option value="withdraw">Withdrawals</option>
-                            <option value="referral">Referral Earnings</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title mb-2" id="historyTitle">All History</div>
-                    <div class="loading" id="historyLoading">
-                        <div class="loading-spinner"></div>
-                    </div>
-                    <ul class="history-list" id="historyList">
-                        <!-- History items will be loaded here -->
-                    </ul>
-                </div>
-            </div>
-
-            <!-- Support Page -->
-            <div class="page" id="support">
-                <h2 class="mb-2">Support & Help</h2>
-                
-                <div class="card mb-2">
-                    <div class="card-title mb-2">Contact Support</div>
-                    <p class="mb-2">If you have any questions or issues, please contact our support team.</p>
-                    
-                    <div class="form-group">
-                        <label class="form-label">Your Message</label>
-                        <textarea class="form-control" id="supportMessage" rows="4" placeholder="Describe your issue here..."></textarea>
-                    </div>
-                    
-                    <button class="btn btn-primary" id="sendSupportBtn">Send Message</button>
-                </div>
-
-                <div class="card mb-2">
-                    <div class="card-title mb-2">FAQ</div>
-                    
-                    <div class="mb-2">
-                        <div class="history-title">How do I earn money?</div>
-                        <div class="history-date">Watch ads, claim daily bonuses, and refer friends to earn money.</div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <div class="history-title">When can I withdraw?</div>
-                        <div class="history-date">You can withdraw when your balance reaches $5.00 or more.</div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <div class="history-title">Are there any fees?</div>
-                        <div class="history-date">No fees for earning. Withdrawal fees depend on the payment method.</div>
-                    </div>
-                    
-                    <div class="mb-2">
-                        <div class="history-title">Is this available worldwide?</div>
-                        <div class="history-date">Yes, our platform is available worldwide except in restricted countries.</div>
-                    </div>
-                </div>
-
-                <div class="card">
-                    <div class="card-title mb-2">App Information</div>
-                    <div class="mb-1">Version: 2.1.0</div>
-                    <div class="mb-1">Last Updated: 2023-10-15</div>
-                    <div>Developer: AdEarn Bot Team</div>
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <!-- Footer Navigation -->
-    <footer class="footer">
-        <div class="footer-item active" data-page="dashboard">
-            <i class="fas fa-home footer-icon"></i>
-            <span>Home</span>
-        </div>
-        <div class="footer-item" data-page="earn">
-            <i class="fas fa-play-circle footer-icon"></i>
-            <span>Earn</span>
-        </div>
-        <div class="footer-item" data-page="bonus">
-            <i class="fas fa-gift footer-icon"></i>
-            <span>Bonus</span>
-        </div>
-        <div class="footer-item" data-page="referral">
-            <i class="fas fa-users footer-icon"></i>
-            <span>Refer</span>
-        </div>
-        <div class="footer-item" data-page="withdraw">
-            <i class="fas fa-wallet footer-icon"></i>
-            <span>Cashout</span>
-        </div>
-    </footer>
-
-    <!-- Notification -->
-    <div class="notification" id="notification">
-        <button class="notification-close" id="notificationClose">&times;</button>
-        <div class="notification-title" id="notificationTitle">Notification</div>
-        <div class="notification-message" id="notificationMessage">This is a notification message</div>
     </div>
 
-    <script>
-        // Firebase Configuration
-        const firebaseConfig = {
-            apiKey: "AIzaSyAVMOaK58kpTRrbUJvWzNa7A9v6Lum6Y18",
-            authDomain: "adsearn-ab376.firebaseapp.com",
-            databaseURL: "https://adsearn-ab376-default-rtdb.firebaseio.com",
-            projectId: "adsearn-ab376",
-            storageBucket: "adsearn-ab376.firebasestorage.app",
-            messagingSenderId: "49081496929",
-            appId: "1:49081496929:web:ff1522dc639cbe3a6b4120",
-            measurementId: "G-CG9NXHHHWD"
+    <div id="view-withdraw" class="view hidden">
+        <h2>Withdraw Funds</h2>
+        <div class="card">
+            <p>Available Balance: <b id="withdraw-balance">0</b> Coins</p>
+            <p style="font-size: 0.8rem; color: var(--warning-color)">Min. Withdraw: <span id="min-wd-text">0</span> Coins</p>
+            
+            <label>Payment Method</label>
+            <select id="wd-method">
+                <option value="Bkash">Bkash</option>
+                <option value="Nagad">Nagad</option>
+                <option value="Payeer">Payeer</option>
+                <option value="USDT">USDT (TRC20)</option>
+            </select>
+            
+            <label>Account Number / Wallet Address</label>
+            <input type="text" id="wd-account" placeholder="Enter details">
+            
+            <label>Amount (Coins)</label>
+            <input type="number" id="wd-amount" placeholder="Min. 100">
+            
+            <button class="btn btn-withdraw" onclick="submitWithdraw()">Submit Request</button>
+        </div>
+    </div>
+
+    <div id="view-referral" class="view hidden">
+        <h2>Refer & Earn</h2>
+        <div class="card">
+            <p>Invite friends and get <b id="ref-bonus-text">0</b> coins per referral!</p>
+            <div style="margin: 15px 0;">
+                <input type="text" id="ref-link" readonly>
+                <button class="btn btn-secondary" onclick="copyRef()">Copy Link</button>
+            </div>
+            <p>Total Referrals: <span id="total-refs">0</span></p>
+        </div>
+    </div>
+
+    <div id="view-history" class="view hidden">
+        <h2>Activity History</h2>
+        <div id="history-list">
+            </div>
+    </div>
+
+    <div id="view-admin-login" class="view hidden">
+        <div class="card">
+            <h3>Admin Access</h3>
+            <input type="password" id="admin-pass" placeholder="Enter Admin Password">
+            <button class="btn btn-primary" onclick="checkAdminPass()">Login</button>
+            <button class="btn" style="margin-top: 10px; background: none;" onclick="showView('home')">Back</button>
+        </div>
+    </div>
+
+    <div id="view-admin-panel" class="view hidden">
+        <div class="admin-header">ADMIN CONTROL PANEL</div>
+        
+        <div class="card grid-stats">
+            <div class="stat-item">Users: <span id="adm-total-users">0</span></div>
+            <div class="stat-item">Clicks: <span id="adm-total-clicks">0</span></div>
+        </div>
+
+        <div class="card">
+            <h4>Settings</h4>
+            <label>Monetag Smartlink</label>
+            <input type="text" id="adm-monetag-url">
+            
+            <div class="grid-stats">
+                <div>
+                    <label>Daily Limit</label>
+                    <input type="number" id="adm-daily-limit">
+                </div>
+                <div>
+                    <label>Cooldown (sec)</label>
+                    <input type="number" id="adm-cooldown">
+                </div>
+            </div>
+            
+            <div class="grid-stats">
+                <div>
+                    <label>Coin/Ad</label>
+                    <input type="number" id="adm-coin-per-ad">
+                </div>
+                <div>
+                    <label>Min Withdraw</label>
+                    <input type="number" id="adm-min-wd">
+                </div>
+            </div>
+            <button class="btn btn-primary" onclick="saveAdminSettings()">Save All Settings</button>
+        </div>
+
+        <div class="card">
+            <h4>Withdraw Requests</h4>
+            <div id="adm-withdraw-list"></div>
+        </div>
+
+        <button class="btn btn-secondary" onclick="logoutAdmin()">Logout</button>
+    </div>
+</div>
+
+<nav class="nav-bar" id="bottom-nav">
+    <button class="nav-item active" onclick="showView('home')">🏠<br>Home</button>
+    <button class="nav-item" onclick="showView('referral')">👥<br>Refer</button>
+    <button class="nav-item" onclick="showView('withdraw')">💰<br>Withdraw</button>
+    <button class="nav-item" onclick="showView('history')">📜<br>History</button>
+</nav>
+
+<script>
+    /* --- DATA MANAGEMENT --- */
+    let db = JSON.parse(localStorage.getItem('adsEarnDB')) || {
+        settings: {
+            adminPass: "SHG_YT", // Updated Password
+            monetagUrl: "https://www.google.com", 
+            dailyLimit: 25,
+            cooldown: 30,
+            coinPerAd: 1,
+            minWithdraw: 100,
+            refBonus: 5
+        },
+        users: {}, 
+        withdraws: [],
+        globalStats: { clicks: 0 }
+    };
+
+    function saveData() {
+        localStorage.setItem('adsEarnDB', JSON.stringify(db));
+    }
+
+    /* --- TELEGRAM INTEGRATION --- */
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+    const user = tg.initDataUnsafe?.user || { id: "12345", first_name: "Demo User" };
+
+    if (!db.users[user.id]) {
+        db.users[user.id] = {
+            id: user.id,
+            name: user.first_name,
+            coins: 0,
+            clicksToday: 0,
+            lastReset: new Date().toDateString(),
+            referrals: 0,
+            history: [],
+            isBanned: false
+        };
+        saveData();
+    }
+
+    let currentUser = db.users[user.id];
+
+    if (currentUser.lastReset !== new Date().toDateString()) {
+        currentUser.clicksToday = 0;
+        currentUser.lastReset = new Date().toDateString();
+        saveData();
+    }
+
+    /* --- UI CONTROLLER --- */
+    function showView(viewId) {
+        document.querySelectorAll('.view').forEach(v => v.classList.add('hidden'));
+        document.getElementById('view-' + viewId).classList.remove('hidden');
+        
+        document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+        if (['home','referral','withdraw','history'].includes(viewId)) {
+            const index = ['home','referral','withdraw','history'].indexOf(viewId);
+            document.querySelectorAll('.nav-item')[index].classList.add('active');
+        }
+
+        if (viewId === 'home') updateDashboard();
+        if (viewId === 'withdraw') updateWithdrawView();
+        if (viewId === 'referral') updateReferralView();
+        if (viewId === 'history') updateHistoryView();
+        if (viewId === 'admin-panel') loadAdminDashboard();
+    }
+
+    function updateDashboard() {
+        if(currentUser.isBanned) {
+            document.body.innerHTML = "<h1 style='padding:50px; text-align:center;'>You are banned.</h1>";
+            return;
+        }
+        document.getElementById('user-name').innerText = currentUser.name;
+        document.getElementById('user-coins').innerText = currentUser.coins;
+        document.getElementById('stat-limit').innerText = db.settings.dailyLimit;
+        document.getElementById('stat-remaining').innerText = db.settings.dailyLimit - currentUser.clicksToday;
+    }
+
+    function updateWithdrawView() {
+        document.getElementById('withdraw-balance').innerText = currentUser.coins;
+        document.getElementById('min-wd-text').innerText = db.settings.minWithdraw;
+    }
+
+    function updateReferralView() {
+        document.getElementById('ref-bonus-text').innerText = db.settings.refBonus;
+        document.getElementById('total-refs').innerText = currentUser.referrals;
+        document.getElementById('ref-link').value = `https://t.me/AdsEarnBot?start=${user.id}`;
+    }
+
+    function updateHistoryView() {
+        const container = document.getElementById('history-list');
+        container.innerHTML = '<h4>Activity History</h4>';
+        db.withdraws.filter(w => w.userId === user.id).forEach(w => {
+            container.innerHTML += `
+                <div class="list-item">
+                    <b>${w.amount} Coins via ${w.method}</b><br>
+                    <small>${w.date}</small>
+                    <span class="badge badge-${w.status.toLowerCase()}" style="float:right">${w.status}</span>
+                </div>`;
+        });
+    }
+
+    /* --- ADS SYSTEM --- */
+    let timerInterval;
+    function handleEarnClick() {
+        if (currentUser.clicksToday >= db.settings.dailyLimit) {
+            alert("Daily limit reached!");
+            return;
+        }
+
+        window.open(db.settings.monetagUrl, '_blank');
+
+        const btn = document.getElementById('btn-earn');
+        const timerDisp = document.getElementById('timer-display');
+        const secSpan = document.getElementById('seconds');
+        
+        btn.disabled = true;
+        timerDisp.classList.remove('hidden');
+        
+        let timeLeft = db.settings.cooldown;
+        secSpan.innerText = timeLeft;
+
+        timerInterval = setInterval(() => {
+            timeLeft--;
+            secSpan.innerText = timeLeft;
+
+            if (timeLeft <= 0) {
+                clearInterval(timerInterval);
+                currentUser.coins += db.settings.coinPerAd;
+                currentUser.clicksToday += 1;
+                db.globalStats.clicks += 1;
+                
+                currentUser.history.push({
+                    type: 'Click',
+                    amount: db.settings.coinPerAd,
+                    date: new Date().toLocaleString()
+                });
+
+                saveData();
+                updateDashboard();
+                
+                btn.disabled = false;
+                timerDisp.classList.add('hidden');
+                alert(`Success! +${db.settings.coinPerAd} coin added.`);
+            }
+        }, 1000);
+    }
+
+    /* --- WITHDRAW LOGIC --- */
+    function submitWithdraw() {
+        const amount = parseInt(document.getElementById('wd-amount').value);
+        const method = document.getElementById('wd-method').value;
+        const account = document.getElementById('wd-account').value;
+
+        if (amount < db.settings.minWithdraw) {
+            alert(`Minimum withdraw is ${db.settings.minWithdraw} coins`);
+            return;
+        }
+        if (amount > currentUser.coins) {
+            alert("Insufficient balance!");
+            return;
+        }
+        if (!account) {
+            alert("Please enter payment account details");
+            return;
+        }
+
+        currentUser.coins -= amount;
+        const request = {
+            id: Date.now(),
+            userId: user.id,
+            userName: currentUser.name,
+            amount: amount,
+            method: method,
+            account: account,
+            status: 'Pending',
+            date: new Date().toLocaleDateString()
         };
 
-        // Initialize Firebase
-        firebase.initializeApp(firebaseConfig);
-        const database = firebase.database();
+        db.withdraws.push(request);
+        saveData();
+        updateWithdrawView();
+        alert("Withdrawal request submitted!");
+    }
 
-        // Initialize Telegram WebApp
-        const tg = window.Telegram.WebApp;
+    /* --- ADMIN LOGIC --- */
+    function showAdminLogin() { showView('admin-login'); }
+
+    function checkAdminPass() {
+        const pass = document.getElementById('admin-pass').value;
+        if (pass === db.settings.adminPass) {
+            showView('admin-panel');
+        } else {
+            alert("Wrong password!");
+        }
+    }
+
+    function loadAdminDashboard() {
+        document.getElementById('adm-total-users').innerText = Object.keys(db.users).length;
+        document.getElementById('adm-total-clicks').innerText = db.globalStats.clicks;
         
-        // Initialize app
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize Telegram WebApp
-            tg.expand();
-            tg.enableClosingConfirmation();
-            
-            // Set theme based on Telegram theme
-            const theme = tg.colorScheme === 'dark' ? 'dark' : 'light';
-            setTheme(theme);
-            
-            // Initialize user data from Telegram or localStorage
-            initializeUser();
-            
-            // Initialize UI elements
-            initializeUI();
-            
-            // Check for notifications
-            checkNotifications();
-            
-            // Start bonus countdown
-            startBonusCountdown();
-            
-            // Load history
-            loadHistory('all');
-            
-            // Update UI every minute
-            setInterval(updateUI, 60000);
+        document.getElementById('adm-monetag-url').value = db.settings.monetagUrl;
+        document.getElementById('adm-daily-limit').value = db.settings.dailyLimit;
+        document.getElementById('adm-cooldown').value = db.settings.cooldown;
+        document.getElementById('adm-coin-per-ad').value = db.settings.coinPerAd;
+        document.getElementById('adm-min-wd').value = db.settings.minWithdraw;
+
+        const list = document.getElementById('adm-withdraw-list');
+        list.innerHTML = "";
+        db.withdraws.forEach((w, index) => {
+            if(w.status === 'Pending') {
+                list.innerHTML += `
+                <div class="list-item">
+                    <b>${w.userName}</b> - ${w.amount} Coins<br>
+                    <small>${w.method}: ${w.account}</small><br>
+                    <button onclick="manageWithdraw(${index}, 'Approved')" style="color:green">Approve</button> | 
+                    <button onclick="manageWithdraw(${index}, 'Rejected')" style="color:red">Reject</button>
+                </div>`;
+            }
         });
+    }
 
-        // Theme management
-        function setTheme(theme) {
-            document.documentElement.setAttribute('data-theme', theme);
-            const themeIcon = document.getElementById('themeToggle').querySelector('i');
-            themeIcon.className = theme === 'dark' ? 'fas fa-sun' : 'fas fa-moon';
-            
-            // Save theme preference
-            localStorage.setItem('theme', theme);
+    function saveAdminSettings() {
+        db.settings.monetagUrl = document.getElementById('adm-monetag-url').value;
+        db.settings.dailyLimit = parseInt(document.getElementById('adm-daily-limit').value);
+        db.settings.cooldown = parseInt(document.getElementById('adm-cooldown').value);
+        db.settings.coinPerAd = parseInt(document.getElementById('adm-coin-per-ad').value);
+        db.settings.minWithdraw = parseInt(document.getElementById('adm-min-wd').value);
+        saveData();
+        alert("Settings Saved!");
+    }
+
+    function manageWithdraw(index, status) {
+        db.withdraws[index].status = status;
+        if(status === 'Rejected') {
+            const uid = db.withdraws[index].userId;
+            db.users[uid].coins += db.withdraws[index].amount;
         }
+        saveData();
+        loadAdminDashboard();
+    }
 
-        // Toggle theme
-        document.getElementById('themeToggle').addEventListener('click', function() {
-            const currentTheme = document.documentElement.getAttribute('data-theme');
-            const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
-            setTheme(newTheme);
-        });
+    function logoutAdmin() { showView('home'); }
 
-        // User data management
-        let user = {
-            id: null,
-            username: 'User',
-            firstName: 'User',
-            joinDate: new Date().toISOString().split('T')[0],
-            balance: 0,
-            adsWatched: 0,
-            totalReferrals: 0,
-            referralEarnings: 0,
-            totalEarnings: 0,
-            totalWithdrawn: 0,
-            todayEarnings: 0,
-            streak: 0,
-            lastBonusClaim: null,
-            lastAdTime: null,
-            adCooldown: false
-        };
+    function copyRef() {
+        const link = document.getElementById('ref-link');
+        link.select();
+        document.execCommand('copy');
+        alert("Referral link copied!");
+    }
 
-        // Initialize user from Telegram or localStorage
-        function initializeUser() {
-            // Try to get user from Telegram WebApp
-            if (tg.initDataUnsafe && tg.initDataUnsafe.user) {
-                const tgUser = tg.initDataUnsafe.user;
-                user.id = tgUser.id;
-                user.username = tgUser.username || `User${tgUser.id}`;
-                user.firstName = tgUser.first_name || 'User';
-                
-                // Check if referral parameter exists
-                const startParam = tg.initDataUnsafe.start_param;
-                if (startParam && startParam.startsWith('ref')) {
-                    const referrerId = startParam.replace('ref', '');
-                    handleReferral(referrerId);
-                }
-            } else {
-                // Fallback to localStorage for demo
-                user.id = localStorage.getItem('userId') || Math.floor(100000 + Math.random() * 900000);
-                user.username = localStorage.getItem('username') || `User${user.id}`;
-                user.firstName = localStorage.getItem('firstName') || 'Demo User';
-            }
-            
-            // Load user data from localStorage
-            loadUserData();
-            
-            // Update UI with user data
-            updateUserUI();
-        }
+    // Initialize
+    updateDashboard();
+</script>
 
-        // Load user data from localStorage
-        function loadUserData() {
-            const savedUser = localStorage.getItem(`user_${user.id}`);
-            if (savedUser) {
-                const savedData = JSON.parse(savedUser);
-                Object.assign(user, savedData);
-            } else {
-                // Initialize new user with welcome bonus
-                user.balance = 0.50;
-                user.todayEarnings = 0.50;
-                user.totalEarnings = 0.50;
-                saveUserData();
-            }
-            
-            // Check if last bonus claim was more than 24 hours ago
-            checkBonusAvailability();
-        }
-
-        // Save user data to localStorage
-        function saveUserData() {
-            localStorage.setItem(`user_${user.id}`, JSON.stringify(user));
-            updateUserUI();
-        }
-
-        // Update user UI elements
-        function updateUserUI() {
-            document.getElementById('username').textContent = user.firstName;
-            document.getElementById('userId').textContent = user.id;
-            document.getElementById('joinDate').textContent = user.joinDate;
-            document.getElementById('currentBalance').textContent = user.balance.toFixed(2);
-            document.getElementById('adsWatched').textContent = user.adsWatched;
-            document.getElementById('totalReferrals').textContent = user.totalReferrals;
-            document.getElementById('referralEarnings').textContent = user.referralEarnings.toFixed(2);
-            document.getElementById('todayEarnings').textContent = user.todayEarnings.toFixed(2);
-            document.getElementById('totalEarnings').textContent = user.totalEarnings.toFixed(2);
-            document.getElementById('totalWithdrawn').textContent = user.totalWithdrawn.toFixed(2);
-            document.getElementById('streakCount').textContent = `${user.streak} days`;
-            
-            // Update withdraw page
-            document.getElementById('withdrawBalance').textContent = user.balance.toFixed(2);
-            document.getElementById('availableBalance').textContent = Math.max(user.balance, 0).toFixed(2);
-            
-            // Update referral page
-            document.getElementById('referralCount').textContent = user.totalReferrals;
-            document.getElementById('referralTotal').textContent = user.referralEarnings.toFixed(2);
-            document.getElementById('referralToday').textContent = (user.referralEarnings * 0.1).toFixed(2);
-            document.getElementById('referralLink').textContent = `https://t.me/AdEarnBot?start=ref${user.id}`;
-            
-            // Update withdraw status
-            updateWithdrawStatus();
-            
-            // Update streak status badges
-            updateStreakBadges();
-        }
-
-        // Update UI periodically
-        function updateUI() {
-            updateUserUI();
-            checkBonusAvailability();
-        }
-
-        // Initialize UI event listeners
-        function initializeUI() {
-            // Navigation tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const pageId = this.getAttribute('data-page');
-                    switchPage(pageId);
-                    
-                    // Update active states
-                    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Update footer active state
-                    document.querySelectorAll('.footer-item').forEach(item => {
-                        if (item.getAttribute('data-page') === pageId) {
-                            item.classList.add('active');
-                        } else {
-                            item.classList.remove('active');
-                        }
-                    });
-                });
-            });
-            
-            // Footer navigation
-            document.querySelectorAll('.footer-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const pageId = this.getAttribute('data-page');
-                    switchPage(pageId);
-                    
-                    // Update active states
-                    document.querySelectorAll('.footer-item').forEach(i => i.classList.remove('active'));
-                    this.classList.add('active');
-                    
-                    // Update nav tabs
-                    document.querySelectorAll('.nav-tab').forEach(tab => {
-                        if (tab.getAttribute('data-page') === pageId) {
-                            tab.classList.add('active');
-                        } else {
-                            tab.classList.remove('active');
-                        }
-                    });
-                });
-            });
-            
-            // Go to withdraw button
-            document.getElementById('goToWithdrawBtn').addEventListener('click', function() {
-                switchPage('withdraw');
-                updateActiveNav('withdraw');
-            });
-            
-            // Ad buttons
-            initializeAdButtons();
-            
-            // Bonus claim button
-            document.getElementById('claimBonusBtn').addEventListener('click', claimDailyBonus);
-            
-            // Copy referral link
-            document.getElementById('copyReferralBtn').addEventListener('click', copyReferralLink);
-            
-            // Withdraw method change
-            document.getElementById('withdrawMethod').addEventListener('change', updateWithdrawMethod);
-            
-            // Submit withdraw
-            document.getElementById('submitWithdrawBtn').addEventListener('click', submitWithdrawal);
-            
-            // History filter
-            document.getElementById('historyFilter').addEventListener('change', function() {
-                loadHistory(this.value);
-            });
-            
-            // Support message
-            document.getElementById('sendSupportBtn').addEventListener('click', sendSupportMessage);
-            
-            // Notification close
-            document.getElementById('notificationClose').addEventListener('click', function() {
-                document.getElementById('notification').classList.remove('show');
-            });
-        }
-
-        // Switch between pages
-        function switchPage(pageId) {
-            // Hide all pages
-            document.querySelectorAll('.page').forEach(page => {
-                page.classList.remove('active');
-            });
-            
-            // Show selected page
-            document.getElementById(pageId).classList.add('active');
-            
-            // Load page-specific data
-            if (pageId === 'history') {
-                loadHistory(document.getElementById('historyFilter').value);
-            }
-        }
-
-        // Update active navigation
-        function updateActiveNav(pageId) {
-            // Update nav tabs
-            document.querySelectorAll('.nav-tab').forEach(tab => {
-                if (tab.getAttribute('data-page') === pageId) {
-                    tab.classList.add('active');
-                } else {
-                    tab.classList.remove('active');
-                }
-            });
-            
-            // Update footer
-            document.querySelectorAll('.footer-item').forEach(item => {
-                if (item.getAttribute('data-page') === pageId) {
-                    item.classList.add('active');
-                } else {
-                    item.classList.remove('active');
-                }
-            });
-        }
-
-        // Initialize ad buttons and functionality
-        function initializeAdButtons() {
-            // Monitag ad
-            document.getElementById('watchMonitagBtn').addEventListener('click', function() {
-                startMonitagAd(30, 0.20, this, 'monitagTimer', 'monitagProgress');
-            });
-            
-            // Video ad
-            document.getElementById('watchVideoBtn').addEventListener('click', function() {
-                startAd('video', 30, 0.10, this, 'videoTimer', 'videoProgress');
-            });
-            
-            // Website visit ad
-            document.getElementById('visitWebsiteBtn').addEventListener('click', function() {
-                startAd('website', 20, 0.15, this, 'websiteTimer', 'websiteProgress');
-            });
-            
-            // Join channel ad
-            document.getElementById('joinChannelBtn').addEventListener('click', function() {
-                startAd('channel', 10, 0.25, this, 'channelTimer', 'channelProgress');
-            });
-        }
-
-        // Start Monitag ad with countdown timer
-        function startMonitagAd(duration, reward, buttonElement, timerId, progressId) {
-            // Check if user is in cooldown
-            if (user.adCooldown) {
-                showNotification('Ad Cooldown', 'Please wait before starting another ad');
-                return;
-            }
-            
-            // Check if user has watched too many ads today
-            const todayAds = parseInt(localStorage.getItem(`today_ads_${user.id}`)) || 0;
-            if (todayAds >= 10) {
-                showNotification('Daily Limit Reached', 'You have reached the maximum of 10 ads per day');
-                return;
-            }
-            
-            // Disable button and start timer
-            buttonElement.disabled = true;
-            buttonElement.textContent = 'Watching...';
-            buttonElement.classList.remove('btn-primary');
-            buttonElement.classList.add('btn-disabled');
-            
-            // Set cooldown
-            user.adCooldown = true;
-            
-            let timeLeft = duration;
-            const timerElement = document.getElementById(timerId);
-            const progressElement = document.getElementById(progressId);
-            const monitagContainer = document.getElementById('monitag-ad-container');
-            
-            // Clear previous content and load Monitag ad
-            monitagContainer.innerHTML = '<div style="padding: 20px; text-align: center;"><i class="fas fa-spinner fa-spin" style="font-size: 30px; color: var(--accent);"></i><div>Loading Monitag Ad...</div></div>';
-            
-            // Load Monitag ad script dynamically
-            setTimeout(function() {
-                // This is where Monitag ads would load
-                // For demo purposes, we'll simulate ad loading
-                monitagContainer.innerHTML = '<div style="padding: 20px; text-align: center;"><i class="fas fa-ad" style="font-size: 40px; color: var(--accent);"></i><div>Monitag Ad is playing...</div><div style="font-size: 12px; color: var(--text-secondary); margin-top: 10px;">Please watch the ad until completion</div></div>';
-            }, 1000);
-            
-            // Update progress bar
-            progressElement.style.width = '0%';
-            
-            // Start countdown
-            const countdown = setInterval(function() {
-                timeLeft--;
-                
-                // Update timer display
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                // Update progress bar
-                const progress = ((duration - timeLeft) / duration) * 100;
-                progressElement.style.width = `${progress}%`;
-                
-                // When timer reaches 0
-                if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    
-                    // Add reward
-                    addEarning(reward, 'Watched Monitag ad');
-                    
-                    // Update ads watched
-                    user.adsWatched++;
-                    
-                    // Update today's ad count
-                    localStorage.setItem(`today_ads_${user.id}`, todayAds + 1);
-                    
-                    // Reset button
-                    buttonElement.disabled = false;
-                    buttonElement.textContent = 'Watch Monitag Ad';
-                    buttonElement.classList.remove('btn-disabled');
-                    buttonElement.classList.add('btn-primary');
-                    
-                    // Reset timer display
-                    timerElement.textContent = `00:${duration.toString().padStart(2, '0')}`;
-                    
-                    // Reset progress bar
-                    progressElement.style.width = '0%';
-                    
-                    // Clear Monitag container
-                    monitagContainer.innerHTML = '<div style="text-align: center; padding: 20px;"><i class="fas fa-ad" style="font-size: 40px; color: var(--text-secondary); margin-bottom: 10px;"></i><div>Monitag Ads will load here</div></div>';
-                    
-                    // Remove cooldown after 5 seconds
-                    setTimeout(function() {
-                        user.adCooldown = false;
-                    }, 5000);
-                    
-                    // Show success notification
-                    showNotification('Ad Completed', `You earned $${reward.toFixed(2)} for watching Monitag ad!`);
-                    
-                    // Save user data
-                    saveUserData();
-                    
-                    // Add to history
-                    addHistory('ads', 'Watched Monitag ad', reward);
-                }
-            }, 1000);
-        }
-
-        // Start an ad with countdown timer
-        function startAd(adType, duration, reward, buttonElement, timerId, progressId) {
-            // Check if user is in cooldown
-            if (user.adCooldown) {
-                showNotification('Ad Cooldown', 'Please wait before starting another ad');
-                return;
-            }
-            
-            // Check if user has watched too many ads today
-            const todayAds = parseInt(localStorage.getItem(`today_ads_${user.id}`)) || 0;
-            if (todayAds >= 10) {
-                showNotification('Daily Limit Reached', 'You have reached the maximum of 10 ads per day');
-                return;
-            }
-            
-            // Disable button and start timer
-            buttonElement.disabled = true;
-            buttonElement.textContent = 'Watching...';
-            buttonElement.classList.remove('btn-primary');
-            buttonElement.classList.add('btn-disabled');
-            
-            // Set cooldown
-            user.adCooldown = true;
-            
-            let timeLeft = duration;
-            const timerElement = document.getElementById(timerId);
-            const progressElement = document.getElementById(progressId);
-            
-            // Update progress bar
-            progressElement.style.width = '0%';
-            
-            // Start countdown
-            const countdown = setInterval(function() {
-                timeLeft--;
-                
-                // Update timer display
-                const minutes = Math.floor(timeLeft / 60);
-                const seconds = timeLeft % 60;
-                timerElement.textContent = `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-                
-                // Update progress bar
-                const progress = ((duration - timeLeft) / duration) * 100;
-                progressElement.style.width = `${progress}%`;
-                
-                // When timer reaches 0
-                if (timeLeft <= 0) {
-                    clearInterval(countdown);
-                    
-                    // Add reward
-                    addEarning(reward, `Watched ${adType} ad`);
-                    
-                    // Update ads watched
-                    user.adsWatched++;
-                    
-                    // Update today's ad count
-                    localStorage.setItem(`today_ads_${user.id}`, todayAds + 1);
-                    
-                    // Reset button
-                    buttonElement.disabled = false;
-                    buttonElement.textContent = adType === 'video' ? 'Watch Video Ad' : 
-                                              adType === 'website' ? 'Visit Website' : 'Join Channel';
-                    buttonElement.classList.remove('btn-disabled');
-                    buttonElement.classList.add('btn-primary');
-                    
-                    // Reset timer display
-                    timerElement.textContent = `00:${duration.toString().padStart(2, '0')}`;
-                    
-                    // Reset progress bar
-                    progressElement.style.width = '0%';
-                    
-                    // Remove cooldown after 5 seconds
-                    setTimeout(function() {
-                        user.adCooldown = false;
-                    }, 5000);
-                    
-                    // Show success notification
-                    showNotification('Ad Completed', `You earned $${reward.toFixed(2)} for watching the ad!`);
-                    
-                    // Save user data
-                    saveUserData();
-                    
-                    // Add to history
-                    addHistory('ads', `Watched ${adType} ad`, reward);
-                }
-            }, 1000);
-        }
-
-        // Add earning to user balance
-        function addEarning(amount, source) {
-            user.balance += amount;
-            user.todayEarnings += amount;
-            user.totalEarnings += amount;
-            
-            // Simulate referral commission (20% to referrer)
-            const referrerId = localStorage.getItem(`referrer_${user.id}`);
-            if (referrerId) {
-                const commission = amount * 0.20;
-                const referrerData = localStorage.getItem(`user_${referrerId}`);
-                if (referrerData) {
-                    const referrer = JSON.parse(referrerData);
-                    referrer.balance += commission;
-                    referrer.referralEarnings += commission;
-                    referrer.totalEarnings += commission;
-                    localStorage.setItem(`user_${referrerId}`, JSON.stringify(referrer));
-                    
-                    // Add to referrer's history
-                    const referrerHistory = JSON.parse(localStorage.getItem(`history_${referrerId}`) || '[]');
-                    referrerHistory.unshift({
-                        type: 'referral',
-                        title: `Referral commission from ${user.username}`,
-                        amount: commission,
-                        date: new Date().toISOString()
-                    });
-                    localStorage.setItem(`history_${referrerId}`, JSON.stringify(referrerHistory));
-                }
-            }
-            
-            saveUserData();
-        }
-
-        // Check and update bonus availability
-        function checkBonusAvailability() {
-            const now = new Date();
-            const lastClaim = user.lastBonusClaim ? new Date(user.lastBonusClaim) : null;
-            const claimBtn = document.getElementById('claimBonusBtn');
-            
-            if (!lastClaim) {
-                // Never claimed before, bonus is available
-                claimBtn.disabled = false;
-                claimBtn.textContent = 'Claim Daily Bonus';
-                claimBtn.classList.remove('btn-disabled');
-                claimBtn.classList.add('btn-success');
-                return;
-            }
-            
-            // Calculate time difference in hours
-            const diffHours = (now - lastClaim) / (1000 * 60 * 60);
-            
-            if (diffHours >= 24) {
-                // Bonus available
-                claimBtn.disabled = false;
-                claimBtn.textContent = 'Claim Daily Bonus';
-                claimBtn.classList.remove('btn-disabled');
-                claimBtn.classList.add('btn-success');
-                
-                // Check if streak is broken (more than 48 hours since last claim)
-                if (diffHours > 48) {
-                    user.streak = 0;
-                    saveUserData();
-                }
-            } else {
-                // Bonus not available yet
-                claimBtn.disabled = true;
-                claimBtn.classList.remove('btn-success');
-                claimBtn.classList.add('btn-disabled');
-                
-                // Calculate time remaining
-                const remainingSeconds = Math.floor((24 * 60 * 60) - (diffHours * 60 * 60));
-                const hours = Math.floor(remainingSeconds / 3600);
-                const minutes = Math.floor((remainingSeconds % 3600) / 60);
-                const seconds = remainingSeconds % 60;
-                
-                claimBtn.textContent = `Next bonus in ${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }
-        }
-
-        // Start bonus countdown timer
-        function startBonusCountdown() {
-            const timerElement = document.getElementById('bonusTimer');
-            
-            setInterval(function() {
-                const now = new Date();
-                const lastClaim = user.lastBonusClaim ? new Date(user.lastBonusClaim) : null;
-                
-                if (!lastClaim) {
-                    timerElement.textContent = '00:00:00';
-                    return;
-                }
-                
-                // Calculate time difference in seconds
-                const diffSeconds = (now - lastClaim) / 1000;
-                const remainingSeconds = Math.max(0, (24 * 60 * 60) - diffSeconds);
-                
-                // Format time
-                const hours = Math.floor(remainingSeconds / 3600);
-                const minutes = Math.floor((remainingSeconds % 3600) / 60);
-                const seconds = Math.floor(remainingSeconds % 60);
-                
-                timerElement.textContent = `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
-            }, 1000);
-        }
-
-        // Claim daily bonus
-        function claimDailyBonus() {
-            const now = new Date();
-            const lastClaim = user.lastBonusClaim ? new Date(user.lastBonusClaim) : null;
-            
-            // Check if bonus is available
-            if (lastClaim) {
-                const diffHours = (now - lastClaim) / (1000 * 60 * 60);
-                if (diffHours < 24) {
-                    showNotification('Bonus Not Available', 'Please wait until your next bonus is available');
-                    return;
-                }
-                
-                // Check if streak continues (claimed within 48 hours)
-                if (diffHours <= 48) {
-                    user.streak++;
-                } else {
-                    user.streak = 1;
-                }
-            } else {
-                // First claim
-                user.streak = 1;
-            }
-            
-            // Calculate bonus amount based on streak
-            let bonusAmount = 0.50;
-            
-            if (user.streak >= 30) {
-                bonusAmount = 25.00;
-            } else if (user.streak >= 7) {
-                bonusAmount = 5.00;
-            } else if (user.streak >= 3) {
-                bonusAmount = 2.00;
-            }
-            
-            // Add bonus to balance
-            addEarning(bonusAmount, `Daily bonus (streak: ${user.streak} days)`);
-            
-            // Update last claim time
-            user.lastBonusClaim = now.toISOString();
-            
-            // Save user data
-            saveUserData();
-            
-            // Update UI
-            checkBonusAvailability();
-            updateStreakBadges();
-            
-            // Show notification
-            showNotification('Bonus Claimed', `You claimed $${bonusAmount.toFixed(2)} daily bonus! Streak: ${user.streak} days`);
-            
-            // Add to history
-            addHistory('bonus', `Daily Bonus (${user.streak} day streak)`, bonusAmount);
-        }
-
-        // Update streak status badges
-        function updateStreakBadges() {
-            const streak3 = document.getElementById('streak3Status');
-            const streak7 = document.getElementById('streak7Status');
-            const streak30 = document.getElementById('streak30Status');
-            
-            streak3.className = 'status-badge';
-            streak7.className = 'status-badge';
-            streak30.className = 'status-badge';
-            
-            if (user.streak >= 30) {
-                streak3.textContent = 'Claimed';
-                streak3.classList.add('status-approved');
-                streak7.textContent = 'Claimed';
-                streak7.classList.add('status-approved');
-                streak30.textContent = 'Claimed';
-                streak30.classList.add('status-approved');
-            } else if (user.streak >= 7) {
-                streak3.textContent = 'Claimed';
-                streak3.classList.add('status-approved');
-                streak7.textContent = 'Claimed';
-                streak7.classList.add('status-approved');
-                streak30.textContent = 'Locked';
-                streak30.classList.add('status-pending');
-            } else if (user.streak >= 3) {
-                streak3.textContent = 'Claimed';
-                streak3.classList.add('status-approved');
-                streak7.textContent = 'Locked';
-                streak7.classList.add('status-pending');
-                streak30.textContent = 'Locked';
-                streak30.classList.add('status-pending');
-            } else {
-                streak3.textContent = 'Locked';
-                streak3.classList.add('status-pending');
-                streak7.textContent = 'Locked';
-                streak7.classList.add('status-pending');
-                streak30.textContent = 'Locked';
-                streak30.classList.add('status-pending');
-            }
-        }
-
-        // Handle referral from start parameter
-        function handleReferral(referrerId) {
-            // Check if already referred
-            if (localStorage.getItem(`referrer_${user.id}`)) {
-                return;
-            }
-            
-            // Save referrer ID
-            localStorage.setItem(`referrer_${user.id}`, referrerId);
-            
-            // Update referrer's referral count
-            const referrerData = localStorage.getItem(`user_${referrerId}`);
-            if (referrerData) {
-                const referrer = JSON.parse(referrerData);
-                referrer.totalReferrals++;
-                localStorage.setItem(`user_${referrerId}`, JSON.stringify(referrer));
-            }
-            
-            // Show notification
-            showNotification('Referral Applied', 'You joined using a referral link!');
-        }
-
-        // Copy referral link to clipboard
-        function copyReferralLink() {
-            const link = document.getElementById('referralLink').textContent;
-            navigator.clipboard.writeText(link).then(function() {
-                showNotification('Copied!', 'Referral link copied to clipboard');
-            });
-        }
-
-        // Update withdraw method UI
-        function updateWithdrawMethod() {
-            const method = document.getElementById('withdrawMethod').value;
-            const label = document.getElementById('accountLabel');
-            const input = document.getElementById('accountNumber');
-            
-            switch(method) {
-                case 'bkash':
-                    label.textContent = 'bKash Account Number';
-                    input.placeholder = '01XXXXXXXXX';
-                    break;
-                case 'nagad':
-                    label.textContent = 'Nagad Account Number';
-                    input.placeholder = '01XXXXXXXXX';
-                    break;
-                case 'binance':
-                    label.textContent = 'Binance Pay ID / USDT Address';
-                    input.placeholder = 'binancepay123 or 0x...';
-                    break;
-                case 'paypal':
-                    label.textContent = 'PayPal Email Address';
-                    input.placeholder = 'example@paypal.com';
-                    break;
-            }
-        }
-
-        // Update withdraw status
-        function updateWithdrawStatus() {
-            const statusElement = document.getElementById('withdrawStatus');
-            const lastWithdraw = localStorage.getItem(`last_withdraw_${user.id}`);
-            
-            if (!lastWithdraw) {
-                statusElement.textContent = 'No withdrawals yet';
-                statusElement.className = 'status-badge status-pending';
-                document.getElementById('nextWithdraw').textContent = '0 days';
-                return;
-            }
-            
-            const lastDate = new Date(lastWithdraw);
-            const now = new Date();
-            const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-            const daysLeft = Math.max(0, 7 - diffDays);
-            
-            document.getElementById('nextWithdraw').textContent = `${daysLeft} days`;
-            
-            if (daysLeft === 0) {
-                statusElement.textContent = 'Available';
-                statusElement.className = 'status-badge status-approved';
-            } else {
-                statusElement.textContent = `Cooldown: ${daysLeft}d`;
-                statusElement.className = 'status-badge status-pending';
-            }
-        }
-
-        // Submit withdrawal request
-        function submitWithdrawal() {
-            const method = document.getElementById('withdrawMethod').value;
-            const account = document.getElementById('accountNumber').value.trim();
-            const amount = parseFloat(document.getElementById('withdrawAmount').value);
-            
-            // Validation
-            if (!account) {
-                showNotification('Error', 'Please enter your account details');
-                return;
-            }
-            
-            if (isNaN(amount) || amount < 5 || amount > 1000) {
-                showNotification('Error', 'Amount must be between $5.00 and $1000.00');
-                return;
-            }
-            
-            if (amount > user.balance) {
-                showNotification('Error', 'Insufficient balance');
-                return;
-            }
-            
-            // Check withdrawal cooldown
-            const lastWithdraw = localStorage.getItem(`last_withdraw_${user.id}`);
-            if (lastWithdraw) {
-                const lastDate = new Date(lastWithdraw);
-                const now = new Date();
-                const diffDays = Math.floor((now - lastDate) / (1000 * 60 * 60 * 24));
-                
-                if (diffDays < 7) {
-                    showNotification('Cooldown', `You can withdraw again in ${7 - diffDays} days`);
-                    return;
-                }
-            }
-            
-            // Process withdrawal
-            user.balance -= amount;
-            user.totalWithdrawn += amount;
-            
-            // Save withdrawal record
-            const withdrawalId = Date.now();
-            const withdrawal = {
-                id: withdrawalId,
-                method: method,
-                account: account,
-                amount: amount,
-                status: 'pending',
-                date: new Date().toISOString()
-            };
-            
-            // Save to history
-            addHistory('withdraw', `Withdrawal request #${withdrawalId}`, -amount);
-            
-            // Update last withdrawal date
-            localStorage.setItem(`last_withdraw_${user.id}`, new Date().toISOString());
-            
-            // Save user data
-            saveUserData();
-            
-            // Clear form
-            document.getElementById('accountNumber').value = '';
-            document.getElementById('withdrawAmount').value = '';
-            
-            // Show success notification
-            showNotification('Withdrawal Requested', `Your withdrawal of $${amount.toFixed(2)} has been submitted. It will be processed within 24-48 hours.`);
-        }
-
-        // Load history based on filter
-        function loadHistory(filter) {
-            const historyList = document.getElementById('historyList');
-            const historyTitle = document.getElementById('historyTitle');
-            const loadingElement = document.getElementById('historyLoading');
-            
-            // Show loading
-            historyList.innerHTML = '';
-            loadingElement.classList.remove('hidden');
-            
-            // Simulate loading delay
-            setTimeout(function() {
-                // Get history from localStorage
-                let history = JSON.parse(localStorage.getItem(`history_${user.id}`) || '[]');
-                
-                // Filter history
-                if (filter !== 'all') {
-                    history = history.filter(item => item.type === filter);
-                }
-                
-                // Update title
-                const titles = {
-                    'all': 'All History',
-                    'ads': 'Ads Watched',
-                    'bonus': 'Daily Bonuses',
-                    'withdraw': 'Withdrawals',
-                    'referral': 'Referral Earnings'
-                };
-                historyTitle.textContent = titles[filter] || 'History';
-                
-                // Display history
-                if (history.length === 0) {
-                    historyList.innerHTML = '<div class="text-center">No history found</div>';
-                } else {
-                    historyList.innerHTML = '';
-                    
-                    // Show only latest 20 items
-                    const displayHistory = history.slice(0, 20);
-                    
-                    displayHistory.forEach(item => {
-                        const historyItem = document.createElement('li');
-                        historyItem.className = 'history-item';
-                        
-                        const date = new Date(item.date);
-                        const formattedDate = date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-                        
-                        historyItem.innerHTML = `
-                            <div class="history-info">
-                                <div class="history-title">${item.title}</div>
-                                <div class="history-date">${formattedDate}</div>
-                            </div>
-                            <div class="history-amount ${item.amount > 0 ? 'positive' : 'negative'}">
-                                ${item.amount > 0 ? '+' : ''}$${Math.abs(item.amount).toFixed(2)}
-                            </div>
-                        `;
-                        
-                        historyList.appendChild(historyItem);
-                    });
-                }
-                
-                // Hide loading
-                loadingElement.classList.add('hidden');
-            }, 500);
-        }
-
-        // Add entry to history
-        function addHistory(type, title, amount) {
-            let history = JSON.parse(localStorage.getItem(`history_${user.id}`) || '[]');
-            
-            history.unshift({
-                type: type,
-                title: title,
-                amount: amount,
-                date: new Date().toISOString()
-            });
-            
-            // Keep only last 100 history items
-            if (history.length > 100) {
-                history = history.slice(0, 100);
-            }
-            
-            localStorage.setItem(`history_${user.id}`, JSON.stringify(history));
-        }
-
-        // Send support message
-        function sendSupportMessage() {
-            const message = document.getElementById('supportMessage').value.trim();
-            
-            if (!message) {
-                showNotification('Error', 'Please enter a message');
-                return;
-            }
-            
-            // Simulate sending message
-            showNotification('Message Sent', 'Your support request has been submitted. We will respond within 24 hours.');
-            
-            // Clear input
-            document.getElementById('supportMessage').value = '';
-            
-            // Add to history
-            addHistory('support', 'Support request sent', 0);
-        }
-
-        // Check for notifications
-        function checkNotifications() {
-            // Check for admin notifications
-            const adminNotification = localStorage.getItem('admin_notification');
-            if (adminNotification) {
-                const notification = JSON.parse(adminNotification);
-                showNotification(notification.title, notification.message);
-            }
-            
-            // Check for maintenance mode
-            const maintenance = localStorage.getItem('maintenance_mode');
-            if (maintenance === 'true') {
-                showNotification('Maintenance', 'The app is currently under maintenance. Please try again later.');
-            }
-        }
-
-        // Show notification
-        function showNotification(title, message) {
-            const notification = document.getElementById('notification');
-            const notificationTitle = document.getElementById('notificationTitle');
-            const notificationMessage = document.getElementById('notificationMessage');
-            
-            notificationTitle.textContent = title;
-            notificationMessage.textContent = message;
-            
-            notification.classList.add('show');
-            
-            // Auto-hide after 5 seconds
-            setTimeout(function() {
-                notification.classList.remove('show');
-            }, 5000);
-        }
-
-        // Admin functions (for demo purposes only)
-        // These would typically be in a separate admin panel
-        function adminSendNotification(title, message) {
-            localStorage.setItem('admin_notification', JSON.stringify({title, message}));
-        }
-        
-        function adminSetMaintenanceMode(enabled) {
-            localStorage.setItem('maintenance_mode', enabled ? 'true' : 'false');
-        }
-    </script>
 </body>
 </html>
